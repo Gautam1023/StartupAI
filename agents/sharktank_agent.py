@@ -1,3 +1,4 @@
+
 from langchain_community.embeddings import HuggingFaceEmbeddings
 from langchain_community.vectorstores import Chroma
 
@@ -16,12 +17,16 @@ client = genai.Client(
 )
 
 # -------------------------
-# ChromaDB
+# Embeddings
 # -------------------------
 
 embeddings = HuggingFaceEmbeddings(
     model_name="sentence-transformers/all-MiniLM-L6-v2"
 )
+
+# -------------------------
+# ChromaDB
+# -------------------------
 
 vectordb = Chroma(
     persist_directory="vectorstore",
@@ -29,75 +34,81 @@ vectordb = Chroma(
 )
 
 # -------------------------
-# Inputs
+# Shark Tank Agent Function
 # -------------------------
 
-idea = input("Startup Idea: ")
-funding = input("Funding Required: ")
-team = input("Team Size: ")
+def generate_shark_report(idea, funding, team):
 
-query = f"""
-Startup Idea: {idea}
-Funding Required: {funding}
-Team Size: {team}
-Shark Tank Analysis
-"""
+    query = f"""
+    Startup Idea: {idea}
+    Funding Required: {funding}
+    Team Size: {team}
+    Shark Tank Analysis
+    """
 
-# -------------------------
-# Retrieve Context
-# -------------------------
+    results = vectordb.similarity_search(query, k=5)
 
-results = vectordb.similarity_search(query, k=5)
+    context = "\n\n".join(
+        [doc.page_content[:500] for doc in results]
+    )
 
-context = "\n\n".join(
-    [doc.page_content[:500] for doc in results]
-)
+    prompt = f"""
+    You are StartupAI Shark Tank Panel.
 
-# -------------------------
-# Prompt
-# -------------------------
+    Use the startup knowledge below.
 
-prompt = f"""
-You are StartupAI Shark Tank Panel.
+    Knowledge:
+    {context}
 
-Use the startup knowledge below.
+    Startup Idea: {idea}
+    Funding Required: {funding}
+    Team Size: {team}
 
-Knowledge:
-{context}
+    Simulate 3 Sharks:
 
-Startup Idea: {idea}
-Funding Required: {funding}
-Team Size: {team}
+    1. Investor Shark
+    2. Risk Shark
+    3. Business Shark
 
-Simulate 3 Sharks:
+    Generate:
 
-1. Investor Shark
-2. Risk Shark
-3. Business Shark
+    1. Deal Score (1-100)
+    2. Investor Shark Verdict
+    3. Risk Shark Verdict
+    4. Business Shark Verdict
+    5. Most Attractive Strength
+    6. Most Dangerous Weakness
+    7. Recommended Funding
+    8. Suggested Equity %
+    9. Final Verdict (INVEST or PASS)
 
-Generate:
+    Be realistic like Shark Tank.
+    """
 
-1. Deal Score (1-100)
-2. Investor Shark Verdict
-3. Risk Shark Verdict
-4. Business Shark Verdict
-5. Most Attractive Strength
-6. Most Dangerous Weakness
-7. Recommended Funding
-8. Suggested Equity %
-9. Final Verdict (INVEST or PASS)
+    response = client.models.generate_content(
+        model="gemini-2.5-flash",
+        contents=prompt
+    )
 
-Be realistic like Shark Tank.
-"""
+    return response.text
+
 
 # -------------------------
-# Gemini
+# Standalone Run
 # -------------------------
 
-response = client.models.generate_content(
-    model="gemini-2.5-flash",
-    contents=prompt
-)
+if __name__ == "__main__":
 
-print("\n===== STARTUPAI SHARK TANK REPORT =====\n")
-print(response.text)
+    idea = input("Startup Idea: ")
+    funding = input("Funding Required: ")
+    team = input("Team Size: ")
+
+    report = generate_shark_report(
+        idea,
+        funding,
+        team
+    )
+
+    print("\n===== STARTUPAI SHARK TANK REPORT =====\n")
+    print(report)
+

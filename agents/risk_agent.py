@@ -1,3 +1,4 @@
+
 from langchain_community.embeddings import HuggingFaceEmbeddings
 from langchain_community.vectorstores import Chroma
 
@@ -40,89 +41,92 @@ vectordb = Chroma(
 
 print("4 - ChromaDB Loaded")
 
-# -------------------------
-# User Inputs
-# -------------------------
-
-idea = input("Startup Idea: ")
-funding = input("Funding Available: ")
-team = input("Team Size: ")
-
-print("5 - Inputs Received")
-
-query = f"""
-Startup Idea: {idea}
-Funding: {funding}
-Team Size: {team}
-Startup Risks
-"""
 
 # -------------------------
-# Retrieve Knowledge
+# Risk Agent Function
 # -------------------------
 
-results = vectordb.similarity_search(query, k=3)
+def generate_risk_report(idea, funding, team):
 
-print("6 - Retrieval Complete")
+    print("5 - Inputs Received")
 
-context = "\n\n".join(
-    [doc.page_content[:500] for doc in results]
-)
+    query = f"""
+    Startup Idea: {idea}
+    Funding: {funding}
+    Team Size: {team}
+    Startup Risks
+    """
 
-print("7 - Context Built")
-print("Context Length:", len(context))
+    results = vectordb.similarity_search(query, k=5)
+
+    print("6 - Retrieval Complete")
+
+    context = "\n\n".join(
+        [doc.page_content[:500] for doc in results]
+    )
+
+    print("7 - Context Built")
+    print("Context Length:", len(context))
+
+    prompt = f"""
+    You are StartupAI Risk Agent.
+
+    Use the startup knowledge below when analyzing.
+
+    Knowledge:
+    {context}
+
+    Startup Idea:
+    {idea}
+
+    Funding:
+    {funding}
+
+    Team Size:
+    {team}
+
+    Generate:
+
+    1. Risk Score (1-10)
+    2. Market Risk
+    3. Funding Risk
+    4. Execution Risk
+    5. Competition Risk
+    6. Recommendations
+    7. Mention relevant startup failure lessons from the knowledge provided.
+
+    Be detailed and practical.
+    """
+
+    print("8 - Prompt Ready")
+    print("Prompt Length:", len(prompt))
+
+    response = client.models.generate_content(
+        model="gemini-2.5-flash",
+        contents=prompt
+    )
+
+    print("9 - Gemini Response Received")
+
+    return response.text
+
 
 # -------------------------
-# Prompt
+# Standalone Run
 # -------------------------
 
-prompt = f"""
-You are StartupAI Risk Agent.
+if __name__ == "__main__":
 
-Use the startup knowledge below when analyzing.
+    idea = input("Startup Idea: ")
+    funding = input("Funding Available: ")
+    team = input("Team Size: ")
 
-Knowledge:
-{context}
+    report = generate_risk_report(
+        idea,
+        funding,
+        team
+    )
 
-Startup Idea:
-{idea}
+    print("\n===== STARTUPAI RISK REPORT =====\n")
+    print(report)
 
-Funding:
-{funding}
-
-Team Size:
-{team}
-
-Generate:
-
-1. Risk Score (1-10)
-2. Market Risk
-3. Funding Risk
-4. Execution Risk
-5. Competition Risk
-6. Recommendations
-7. Mention relevant startup failure lessons from the knowledge provided.
-
-Be detailed and practical.
-"""
-
-print("8 - Prompt Ready")
-print("Prompt Length:", len(prompt))
-
-# -------------------------
-# Gemini Call
-# -------------------------
-
-response = client.models.generate_content(
-    model="gemini-2.5-flash",
-    contents=prompt
-)
-
-print("9 - Gemini Response Received")
-
-# -------------------------
-# Output
-# -------------------------
-
-print("\n===== STARTUPAI RISK REPORT =====\n")
-print(response.text)

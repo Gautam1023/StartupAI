@@ -1,3 +1,4 @@
+
 from langchain_community.embeddings import HuggingFaceEmbeddings
 from langchain_community.vectorstores import Chroma
 
@@ -29,66 +30,72 @@ vectordb = Chroma(
 )
 
 # -------------------------
-# Inputs
+# Business Agent Function
 # -------------------------
 
-idea = input("Startup Idea: ")
-funding = input("Funding Available: ")
-team = input("Team Size: ")
+def generate_business_report(idea, funding, team):
 
-query = f"""
-Startup Idea: {idea}
-Funding: {funding}
-Team Size: {team}
-Business Analysis
-"""
+    query = f"""
+    Startup Idea: {idea}
+    Funding: {funding}
+    Team Size: {team}
+    Business Analysis
+    """
 
-# -------------------------
-# Retrieve Context
-# -------------------------
+    results = vectordb.similarity_search(query, k=5)
 
-results = vectordb.similarity_search(query, k=5)
+    context = "\n\n".join(
+        [doc.page_content[:500] for doc in results]
+    )
 
-context = "\n\n".join(
-    [doc.page_content[:500] for doc in results]
-)
+    prompt = f"""
+    You are StartupAI Business Agent.
 
-# -------------------------
-# Prompt
-# -------------------------
+    Knowledge:
+    {context}
 
-prompt = f"""
-You are StartupAI Business Agent.
+    Startup Idea: {idea}
+    Funding Available: {funding}
+    Team Size: {team}
 
-Knowledge:
-{context}
+    Generate:
 
-Startup Idea: {idea}
-Funding Available: {funding}
-Team Size: {team}
+    1. Business Model Analysis
+    2. Target Customers
+    3. Revenue Streams
+    4. Product-Market Fit Assessment
+    5. Go-To-Market Strategy
+    6. Growth Strategy
+    7. Key Business Risks
+    8. Recommendations
 
-Generate:
+    Provide practical startup advice.
+    """
 
-1. Business Model Analysis
-2. Target Customers
-3. Revenue Streams
-4. Product-Market Fit Assessment
-5. Go-To-Market Strategy
-6. Growth Strategy
-7. Key Business Risks
-8. Recommendations
+    response = client.models.generate_content(
+        model="gemini-2.5-flash",
+        contents=prompt
+    )
 
-Provide practical startup advice.
-"""
+    return response.text
+
 
 # -------------------------
-# Gemini
+# Standalone Run
 # -------------------------
 
-response = client.models.generate_content(
-    model="gemini-2.5-flash",
-    contents=prompt
-)
+if __name__ == "__main__":
 
-print("\n===== STARTUPAI BUSINESS REPORT =====\n")
-print(response.text)
+    idea = input("Startup Idea: ")
+    funding = input("Funding Available: ")
+    team = input("Team Size: ")
+
+    report = generate_business_report(
+        idea,
+        funding,
+        team
+    )
+
+    print("\n===== STARTUPAI BUSINESS REPORT =====\n")
+    print(report)
+

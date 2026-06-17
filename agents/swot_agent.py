@@ -17,12 +17,16 @@ client = genai.Client(
 )
 
 # -------------------------
-# ChromaDB
+# Embeddings
 # -------------------------
 
 embeddings = HuggingFaceEmbeddings(
     model_name="sentence-transformers/all-MiniLM-L6-v2"
 )
+
+# -------------------------
+# ChromaDB
+# -------------------------
 
 vectordb = Chroma(
     persist_directory="vectorstore",
@@ -30,16 +34,16 @@ vectordb = Chroma(
 )
 
 # -------------------------
-# Investor Agent Function
+# SWOT Agent Function
 # -------------------------
 
-def generate_investor_report(idea, funding, team):
+def generate_swot_report(idea, funding, team):
 
     query = f"""
     Startup Idea: {idea}
-    Funding Required: {funding}
+    Funding Available: {funding}
     Team Size: {team}
-    Investor Analysis
+    SWOT Analysis
     """
 
     results = vectordb.similarity_search(query, k=5)
@@ -49,29 +53,25 @@ def generate_investor_report(idea, funding, team):
     )
 
     prompt = f"""
-    You are StartupAI Investor Agent.
+    You are StartupAI SWOT Agent.
+
+    Use the startup knowledge below.
 
     Knowledge:
     {context}
 
     Startup Idea: {idea}
-    Funding Required: {funding}
+    Funding Available: {funding}
     Team Size: {team}
 
-    Act like a venture capitalist.
+    Generate a detailed SWOT Analysis.
 
-    Generate:
+    1. Strengths
+    2. Weaknesses
+    3. Opportunities
+    4. Threats
 
-    1. Investor Interest Score (1-10)
-    2. Investment Decision (Invest / Pass)
-    3. Startup Strengths
-    4. Startup Weaknesses
-    5. Questions Investors Will Ask
-    6. Funding Readiness
-    7. Suggested Valuation Range
-    8. Key Risks Before Investment
-
-    Be realistic and professional.
+    Give practical startup insights.
     """
 
     response = client.models.generate_content(
@@ -89,15 +89,15 @@ def generate_investor_report(idea, funding, team):
 if __name__ == "__main__":
 
     idea = input("Startup Idea: ")
-    funding = input("Funding Required: ")
+    funding = input("Funding Available: ")
     team = input("Team Size: ")
 
-    report = generate_investor_report(
+    report = generate_swot_report(
         idea,
         funding,
         team
     )
 
-    print("\n===== STARTUPAI INVESTOR REPORT =====\n")
+    print("\n===== STARTUPAI SWOT REPORT =====\n")
     print(report)
 
